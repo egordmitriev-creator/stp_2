@@ -359,8 +359,6 @@ class PhoneBookWindow(QMainWindow):
     def show_about(self):
         about_text = """Телефонная книга
         
-Версия 1.0
-Разработка на Python с PyQt5
 
 Функции:
 • Добавление/редактирование/удаление
