@@ -1,326 +1,283 @@
-# views/interface.py
-import tkinter as tk
-from tkinter import ttk, messagebox
-from typing import Callable, Optional
+from PyQt5.QtWidgets import (
+    QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
+    QLabel, QLineEdit, QPushButton, QTableWidget, QTableWidgetItem,
+    QMessageBox, QHeaderView, QMenuBar, QMenu, QAction, QStatusBar
+)
+from PyQt5.QtCore import Qt, pyqtSignal
+from PyQt5.QtGui import QFont
+from models.subscriber_list import SubscriberList
 
-class PhoneBookInterface:
-    """
-    Граничный класс для взаимодействия с пользователем.
-    Аналог 'Интерфейс' из диаграммы.
-    """
+
+
+class PhoneBookWindow(QMainWindow):
+    """Основное окно приложения"""
+    def __init__(self):
+        super().__init__()
+        self.subscriber_list = SubscriberList()
+        self.current_search = None
+        self.init_ui()
+        self.load_data()
     
-    def __init__(self, root: tk.Tk):
-        self.root = root
-        self.root.title("Телефонная книга")
-        self.root.geometry("800x600")
+    def init_ui(self):
+        self.setWindowTitle('Телефонная книга')
+        self.setGeometry(100, 100, 900, 700)
         
-        # Ссылки на другие компоненты (будут установлены позже)
-        self._subscriber_list = None
-        self._file_manager = None
-        
-        self._setup_ui()
-    
-    def set_subscriber_list(self, subscriber_list):
-        """Установка связи с СписокАбонентов"""
-        self._subscriber_list = subscriber_list
-    
-    def set_file_manager(self, file_manager):
-        """Установка связи с Файл"""
-        self._file_manager = file_manager
-    
-    def _setup_ui(self):
-        """Настройка пользовательского интерфейса"""
-        # Основной контейнер
-        main_container = ttk.Frame(self.root, padding="20")
-        main_container.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
-        
-        # Настройка расширения
-        self.root.columnconfigure(0, weight=1)
-        self.root.rowconfigure(0, weight=1)
-        main_container.columnconfigure(1, weight=1)
+        # Центральный виджет
+        central_widget = QWidget()
+        self.setCentralWidget(central_widget)
+        layout = QVBoxLayout(central_widget)
         
         # Заголовок
-        title = ttk.Label(main_container, 
-                         text="Телефонная книга", 
-                         font=("Helvetica", 24, "bold"))
-        title.grid(row=0, column=0, columnspan=3, pady=(0, 20))
+        title = QLabel('📖 Телефонная книга')
+        title_font = QFont('Helvetica', 24, QFont.Bold)
+        title.setFont(title_font)
+        title.setAlignment(Qt.AlignCenter)
+        layout.addWidget(title)
         
-        # Панель ввода данных
-        input_frame = ttk.LabelFrame(main_container, text="Данные абонента", padding="10")
-        input_frame.grid(row=1, column=0, columnspan=3, sticky=(tk.W, tk.E), pady=(0, 15))
-        input_frame.columnconfigure(1, weight=1)
+        # Поля ввода
+        input_layout = QHBoxLayout()
         
-        ttk.Label(input_frame, text="Имя:").grid(row=0, column=0, sticky=tk.W, pady=5)
-        self.name_var = tk.StringVar()
-        self.name_entry = ttk.Entry(input_frame, textvariable=self.name_var, width=40)
-        self.name_entry.grid(row=0, column=1, sticky=(tk.W, tk.E), padx=(5, 0), pady=5)
+        name_layout = QVBoxLayout()
+        name_label = QLabel('Имя:')
+        self.name_input = QLineEdit()
+        name_layout.addWidget(name_label)
+        name_layout.addWidget(self.name_input)
         
-        ttk.Label(input_frame, text="Телефон:").grid(row=1, column=0, sticky=tk.W, pady=5)
-        self.phone_var = tk.StringVar()
-        self.phone_entry = ttk.Entry(input_frame, textvariable=self.phone_var, width=40)
-        self.phone_entry.grid(row=1, column=1, sticky=(tk.W, tk.E), padx=(5, 0), pady=5)
+        phone_layout = QVBoxLayout()
+        phone_label = QLabel('Телефон:')
+        self.phone_input = QLineEdit()
+        phone_layout.addWidget(phone_label)
+        phone_layout.addWidget(self.phone_input)
         
-        # Панель кнопок
-        button_frame = ttk.Frame(main_container)
-        button_frame.grid(row=2, column=0, columnspan=3, pady=(0, 15))
+        input_layout.addLayout(name_layout)
+        input_layout.addLayout(phone_layout)
+        layout.addLayout(input_layout)
         
-        self.add_btn = ttk.Button(button_frame, text="Добавить", 
-                                 command=self._on_add)
-        self.add_btn.pack(side=tk.LEFT, padx=5)
+        # Кнопки управления
+        button_layout = QHBoxLayout()
         
-        self.edit_btn = ttk.Button(button_frame, text="Изменить", 
-                                  command=self._on_edit, state=tk.DISABLED)
-        self.edit_btn.pack(side=tk.LEFT, padx=5)
+        self.add_button = QPushButton('➕ Добавить')
+        self.add_button.clicked.connect(self.add_subscriber)
+        self.add_button.setStyleSheet('padding: 8px; font-weight: bold;')
         
-        self.delete_btn = ttk.Button(button_frame, text="Удалить", 
-                                    command=self._on_delete, state=tk.DISABLED)
-        self.delete_btn.pack(side=tk.LEFT, padx=5)
+        self.edit_button = QPushButton('✏️ Редактировать')
+        self.edit_button.clicked.connect(self.edit_subscriber)
+        self.edit_button.setEnabled(False)
+        self.edit_button.setStyleSheet('padding: 8px;')
         
-        self.search_btn = ttk.Button(button_frame, text="Найти", 
-                                    command=self._on_search)
-        self.search_btn.pack(side=tk.LEFT, padx=5)
+        self.delete_button = QPushButton('❌ Удалить')
+        self.delete_button.clicked.connect(self.delete_subscriber)
+        self.delete_button.setEnabled(False)
+        self.delete_button.setStyleSheet('padding: 8px;')
         
-        self.clear_btn = ttk.Button(button_frame, text="Очистить книгу", 
-                                   command=self._on_clear)
-        self.clear_btn.pack(side=tk.LEFT, padx=5)
+        self.clear_button = QPushButton('🧹 Очистить книгу')
+        self.clear_button.clicked.connect(self.clear_book)
+        self.clear_button.setStyleSheet('padding: 8px;')
         
-        # Панель поиска
-        search_frame = ttk.Frame(main_container)
-        search_frame.grid(row=3, column=0, columnspan=3, pady=(0, 10), sticky=(tk.W, tk.E))
+        button_layout.addWidget(self.add_button)
+        button_layout.addWidget(self.edit_button)
+        button_layout.addWidget(self.delete_button)
+        button_layout.addWidget(self.clear_button)
+        layout.addLayout(button_layout)
         
-        ttk.Label(search_frame, text="Поиск по имени:").pack(side=tk.LEFT)
-        self.search_var = tk.StringVar()
-        self.search_entry = ttk.Entry(search_frame, textvariable=self.search_var, width=30)
-        self.search_entry.pack(side=tk.LEFT, padx=5)
-        self.search_entry.bind('<Return>', lambda e: self._on_search())
+        # Поиск
+        search_layout = QHBoxLayout()
+        search_label = QLabel('🔍 Поиск:')
+        self.search_input = QLineEdit()
+        self.search_input.setPlaceholderText('Введите имя для поиска...')
+        self.search_input.returnPressed.connect(self.search_subscribers)
+        search_button = QPushButton('Найти')
+        search_button.clicked.connect(self.search_subscribers)
+        clear_search_button = QPushButton('Очистить поиск')
+        clear_search_button.clicked.connect(self.clear_search)
         
-        # Список абонентов
-        list_frame = ttk.LabelFrame(main_container, text="Абоненты", padding="10")
-        list_frame.grid(row=4, column=0, columnspan=3, sticky=(tk.W, tk.E, tk.N, tk.S), pady=(0, 15))
-        list_frame.columnconfigure(0, weight=1)
-        list_frame.rowconfigure(0, weight=1)
+        search_layout.addWidget(search_label)
+        search_layout.addWidget(self.search_input)
+        search_layout.addWidget(search_button)
+        search_layout.addWidget(clear_search_button)
+        layout.addLayout(search_layout)
         
-        # TreeView для отображения
-        self.tree = ttk.Treeview(list_frame, columns=('name', 'phone'), 
-                                show='headings', height=15)
-        self.tree.heading('name', text='Имя')
-        self.tree.heading('phone', text='Телефон')
-        self.tree.column('name', width=350)
-        self.tree.column('phone', width=200)
+        # Таблица абонентов
+        self.table = QTableWidget()
+        self.table.setColumnCount(2)
+        self.table.setHorizontalHeaderLabels(['Имя', 'Телефон'])
+        self.table.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
+        self.table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeToContents)
+        self.table.setSelectionBehavior(QTableWidget.SelectRows)
+        self.table.setEditTriggers(QTableWidget.NoEditTriggers)
+        self.table.cellClicked.connect(self.on_row_selected)
         
-        # Полоса прокрутки
-        scrollbar = ttk.Scrollbar(list_frame, orient=tk.VERTICAL, command=self.tree.yview)
-        self.tree.configure(yscrollcommand=scrollbar.set)
+        layout.addWidget(self.table)
         
-        self.tree.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
-        scrollbar.grid(row=0, column=1, sticky=(tk.N, tk.S))
+        # Статус бар
+        self.status_bar = QStatusBar()
+        self.setStatusBar(self.status_bar)
+        self.status_bar.showMessage('Готово')
         
-        # Привязка события выбора
-        self.tree.bind('<<TreeviewSelect>>', self._on_tree_select)
-        
-        # Статусная строка
-        self.status_var = tk.StringVar(value="Готово")
-        status_bar = ttk.Label(main_container, textvariable=self.status_var, 
-                              relief=tk.SUNKEN, anchor=tk.W)
-        status_bar.grid(row=5, column=0, columnspan=3, sticky=(tk.W, tk.E))
-        
-        # Меню
-        self._create_menu()
-        
-        # Загрузка данных при запуске
-        self.root.after(100, self._load_initial_data)
+        # Создаем меню
+        self.create_menu()
     
-    def _create_menu(self):
-        """Создание меню приложения"""
-        menubar = tk.Menu(self.root)
-        self.root.config(menu=menubar)
+    def create_menu(self):
+        menubar = self.menuBar()
         
         # Меню Файл
-        file_menu = tk.Menu(menubar, tearoff=0)
-        menubar.add_cascade(label="Файл", menu=file_menu)
-        file_menu.add_command(label="Загрузить", command=self._on_load)
-        file_menu.add_command(label="Сохранить", command=self._on_save)
-        file_menu.add_separator()
-        file_menu.add_command(label="Выход", command=self.root.quit)
+        file_menu = menubar.addMenu('Файл')
+        
+        save_action = QAction('Сохранить', self)
+        save_action.triggered.connect(self.save_data)
+        file_menu.addAction(save_action)
+        
+        load_action = QAction('Загрузить', self)
+        load_action.triggered.connect(self.load_data)
+        file_menu.addAction(load_action)
+        
+        file_menu.addSeparator()
+        
+        exit_action = QAction('Выход', self)
+        exit_action.triggered.connect(self.close)
+        file_menu.addAction(exit_action)
         
         # Меню Справка
-        help_menu = tk.Menu(menubar, tearoff=0)
-        menubar.add_cascade(label="Справка", menu=help_menu)
-        help_menu.add_command(label="О программе", command=self._show_about)
-    
-    def _load_initial_data(self):
-        """Загрузка данных при старте приложения"""
-        if self._subscriber_list and self._file_manager:
-            self._subscriber_list.load_from_file()
-            self._update_display()
-            self.status_var.set("Данные загружены")
-    
-    def _update_display(self, subscribers=None):
-        """Обновление отображения списка"""
-        # Очистка текущего списка
-        for item in self.tree.get_children():
-            self.tree.delete(item)
+        help_menu = menubar.addMenu('Справка')
         
-        # Получение данных
-        if subscribers is None and self._subscriber_list:
-            subscribers = self._subscriber_list.get_all()
-        
-        # Добавление данных
-        if subscribers:
-            for subscriber in subscribers:
-                self.tree.insert('', tk.END, values=(subscriber.name, subscriber.phone))
+        about_action = QAction('О программе', self)
+        about_action.triggered.connect(self.show_about)
+        help_menu.addAction(about_action)
     
-    def _clear_input(self):
-        """Очистка полей ввода"""
-        self.name_var.set("")
-        self.phone_var.set("")
+    def load_data(self):
+        self.subscriber_list.load()
+        self.update_table()
+        self.status_bar.showMessage(f'Загружено записей: {len(self.subscriber_list.subscribers)}', 3000)
     
-    def _on_tree_select(self, event):
-        """Обработка выбора в дереве"""
-        selection = self.tree.selection()
-        if selection:
-            item = self.tree.item(selection[0])
-            self.name_var.set(item['values'][0])
-            self.phone_var.set(item['values'][1])
-            self.edit_btn.config(state=tk.NORMAL)
-            self.delete_btn.config(state=tk.NORMAL)
+    def save_data(self):
+        if self.subscriber_list.save():
+            self.status_bar.showMessage('Данные сохранены', 3000)
         else:
-            self.edit_btn.config(state=tk.DISABLED)
-            self.delete_btn.config(state=tk.DISABLED)
+            QMessageBox.warning(self, 'Ошибка', 'Не удалось сохранить данные')
     
-    def _on_add(self):
-        """Обработка добавления абонента"""
-        name = self.name_var.get().strip()
-        phone = self.phone_var.get().strip()
+    def update_table(self, subscribers=None):
+        if subscribers is None:
+            subscribers = self.subscriber_list.get_all()
+        
+        self.table.setRowCount(len(subscribers))
+        for i, sub in enumerate(subscribers):
+            self.table.setItem(i, 0, QTableWidgetItem(sub.name))
+            self.table.setItem(i, 1, QTableWidgetItem(sub.phone))
+    
+    def on_row_selected(self, row, column):
+        self.edit_button.setEnabled(True)
+        self.delete_button.setEnabled(True)
+        
+        name_item = self.table.item(row, 0)
+        phone_item = self.table.item(row, 1)
+        
+        if name_item and phone_item:
+            self.name_input.setText(name_item.text())
+            self.phone_input.setText(phone_item.text())
+    
+    def add_subscriber(self):
+        name = self.name_input.text().strip()
+        phone = self.phone_input.text().strip()
         
         if not name or not phone:
-            messagebox.showwarning("Ошибка", "Заполните все поля!")
+            QMessageBox.warning(self, 'Ошибка', 'Заполните все поля!')
             return
         
-        if self._subscriber_list and self._subscriber_list.add(name, phone):
-            self._update_display()
-            self._clear_input()
-            self.status_var.set(f"Абонент '{name}' добавлен")
-            
-            # Автосохранение
-            if self._subscriber_list:
-                self._subscriber_list.save_to_file()
+        if self.subscriber_list.add(name, phone):
+            self.update_table()
+            self.clear_inputs()
+            self.status_bar.showMessage(f'Добавлен: {name}', 3000)
         else:
-            messagebox.showwarning("Ошибка", "Не удалось добавить абонента!")
+            QMessageBox.warning(self, 'Ошибка', 'Абонент уже существует!')
     
-    def _on_edit(self):
-        """Обработка редактирования абонента"""
-        selection = self.tree.selection()
-        if not selection:
-            messagebox.showwarning("Ошибка", "Выберите абонента для редактирования!")
+    def edit_subscriber(self):
+        selected = self.table.selectedItems()
+        if not selected:
+            QMessageBox.warning(self, 'Ошибка', 'Выберите абонента для редактирования!')
             return
         
-        name = self.name_var.get().strip()
-        phone = self.phone_var.get().strip()
+        row = selected[0].row()
+        old_name = self.table.item(row, 0).text()
+        
+        name = self.name_input.text().strip()
+        phone = self.phone_input.text().strip()
         
         if not name or not phone:
-            messagebox.showwarning("Ошибка", "Заполните все поля!")
+            QMessageBox.warning(self, 'Ошибка', 'Заполните все поля!')
             return
         
-        # Получаем индекс выбранного элемента
-        item_id = selection[0]
-        children = self.tree.get_children()
-        if item_id in children:
-            index = children.index(item_id)
-            if self._subscriber_list and self._subscriber_list.edit(index, name, phone):
-                self._update_display()
-                self._clear_input()
-                self.status_var.set(f"Абонент обновлен")
-                
-                # Автосохранение
-                if self._subscriber_list:
-                    self._subscriber_list.save_to_file()
-            else:
-                messagebox.showwarning("Ошибка", "Не удалось обновить абонента!")
+        if self.subscriber_list.edit(row, name, phone):
+            self.update_table()
+            self.clear_inputs()
+            self.edit_button.setEnabled(False)
+            self.delete_button.setEnabled(False)
+            self.status_bar.showMessage(f'Обновлен: {old_name} → {name}', 3000)
+        else:
+            QMessageBox.warning(self, 'Ошибка', 'Не удалось обновить абонента!')
     
-    def _on_delete(self):
-        """Обработка удаления абонента"""
-        selection = self.tree.selection()
-        if not selection:
-            messagebox.showwarning("Ошибка", "Выберите абонента для удаления!")
+    def delete_subscriber(self):
+        selected = self.table.selectedItems()
+        if not selected:
+            QMessageBox.warning(self, 'Ошибка', 'Выберите абонента для удаления!')
             return
         
-        if not messagebox.askyesno("Подтверждение", "Удалить выбранного абонента?"):
-            return
+        row = selected[0].row()
+        name = self.table.item(row, 0).text()
         
-        # Получаем индекс выбранного элемента
-        item_id = selection[0]
-        children = self.tree.get_children()
-        if item_id in children:
-            index = children.index(item_id)
-            if self._subscriber_list and self._subscriber_list.delete(index):
-                self._update_display()
-                self._clear_input()
-                self.status_var.set(f"Абонент удален")
-                
-                # Автосохранение
-                if self._subscriber_list:
-                    self._subscriber_list.save_to_file()
+        reply = QMessageBox.question(self, 'Подтверждение', 
+                                   f'Удалить абонента "{name}"?',
+                                   QMessageBox.Yes | QMessageBox.No)
+        
+        if reply == QMessageBox.Yes:
+            if self.subscriber_list.delete(row):
+                self.update_table()
+                self.clear_inputs()
+                self.edit_button.setEnabled(False)
+                self.delete_button.setEnabled(False)
+                self.status_bar.showMessage(f'Удален: {name}', 3000)
             else:
-                messagebox.showwarning("Ошибка", "Не удалось удалить абонента!")
+                QMessageBox.warning(self, 'Ошибка', 'Не удалось удалить абонента!')
     
-    def _on_search(self):
-        """Обработка поиска"""
-        search_text = self.search_var.get().strip()
+    def search_subscribers(self):
+        search_text = self.search_input.text().strip()
         if not search_text:
-            self._update_display()
+            self.update_table()
             return
         
-        if self._subscriber_list:
-            results = self._subscriber_list.search(search_text)
-            self._update_display(results)
-            self.status_var.set(f"Найдено: {len(results)} записей")
+        results = self.subscriber_list.search(search_text)
+        self.current_search = results
+        self.update_table(results)
+        self.status_bar.showMessage(f'Найдено записей: {len(results)}', 3000)
     
-    def _on_clear(self):
-        """Обработка очистки книги"""
-        if not messagebox.askyesno("Подтверждение", 
-                                  "Очистить всю телефонную книгу?"):
-            return
+    def clear_search(self):
+        self.search_input.clear()
+        self.current_search = None
+        self.update_table()
+        self.status_bar.showMessage('Поиск очищен', 3000)
+    
+    def clear_book(self):
+        reply = QMessageBox.question(self, 'Подтверждение',
+                                   'Очистить всю телефонную книгу?',
+                                   QMessageBox.Yes | QMessageBox.No)
         
-        if self._subscriber_list:
-            self._subscriber_list.clear()
-            self._update_display()
-            self._clear_input()
-            self.status_var.set("Телефонная книга очищена")
-            
-            # Автосохранение
-            self._subscriber_list.save_to_file()
+        if reply == QMessageBox.Yes:
+            self.subscriber_list.clear()
+            self.update_table()
+            self.clear_inputs()
+            self.status_bar.showMessage('Телефонная книга очищена', 3000)
     
-    def _on_save(self):
-        """Обработка сохранения"""
-        if self._subscriber_list:
-            if self._subscriber_list.save_to_file():
-                self.status_var.set("Данные сохранены")
-            else:
-                messagebox.showerror("Ошибка", "Не удалось сохранить данные!")
+    def clear_inputs(self):
+        self.name_input.clear()
+        self.phone_input.clear()
     
-    def _on_load(self):
-        """Обработка загрузки"""
-        if self._subscriber_list:
-            if self._subscriber_list.load_from_file():
-                self._update_display()
-                self.status_var.set("Данные загружены")
-            else:
-                messagebox.showwarning("Предупреждение", 
-                                      "Не удалось загрузить данные!")
-    
-    def _show_about(self):
-        """Показать информацию о программе"""
+    def show_about(self):
         about_text = """Телефонная книга
         
-Версия 1.0
-Разработка приложения под macOS
-в технологии ООП на Python
 
-Функциональность:
-• Добавление/редактирование/удаление абонентов
+Функции:
+• Добавление/редактирование/удаление
 • Поиск по имени
-• Сортировка по имени
-• Сохранение в файл"""
+• Сохранение в файл
+• Сортировка по имени"""
         
-        messagebox.showinfo("О программе", about_text)
+        QMessageBox.about(self, 'О программе', about_text)

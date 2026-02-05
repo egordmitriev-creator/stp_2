@@ -1,102 +1,67 @@
-# models/subscriber_list.py
-from typing import List, Dict, Optional
-from models.subscriber import Subscriber
-
+import os
+import pickle
+from .subscriber import Subscriber
 class SubscriberList:
-    """
-    Класс для работы со списком абонентов в оперативной памяти.
-    Аналог 'СписокАбонентов' из диаграммы.
-    """
-    
+    """Класс списка абонентов"""
     def __init__(self):
-        self._subscribers = []  # Хранение в отсортированном виде
-        self._file_manager = None
+        self.subscribers = []
+        self.filename = "data/phonebook.dat"
+        os.makedirs(os.path.dirname(self.filename), exist_ok=True)
     
-    def set_file_manager(self, file_manager):
-        """Установка менеджера файлов для работы с диском"""
-        self._file_manager = file_manager
-    
-    def add(self, name: str, phone: str) -> bool:
-        """Добавление нового абонента"""
+    def add(self, name, phone):
         if not name or not phone:
             return False
         
-        new_subscriber = Subscriber(name, phone)
+        new_sub = Subscriber(name, phone)
+        if new_sub in self.subscribers:
+            return False
         
-        # Проверка на уникальность
-        for subscriber in self._subscribers:
-            if subscriber == new_subscriber:
-                return False
-        
-        self._subscribers.append(new_subscriber)
-        self._sort_subscribers()
+        self.subscribers.append(new_sub)
+        self.subscribers.sort()
+        self.save()
         return True
     
-    def edit(self, index: int, name: str, phone: str) -> bool:
-        """Редактирование абонента по индексу"""
-        if 0 <= index < len(self._subscribers):
-            self._subscribers[index] = Subscriber(name, phone)
-            self._sort_subscribers()
+    def edit(self, index, name, phone):
+        if 0 <= index < len(self.subscribers):
+            self.subscribers[index] = Subscriber(name, phone)
+            self.subscribers.sort()
+            self.save()
             return True
         return False
     
-    def delete(self, index: int) -> bool:
-        """Удаление абонента по индексу"""
-        if 0 <= index < len(self._subscribers):
-            del self._subscribers[index]
+    def delete(self, index):
+        if 0 <= index < len(self.subscribers):
+            del self.subscribers[index]
+            self.save()
             return True
         return False
     
-    def delete_by_name(self, name: str) -> bool:
-        """Удаление абонента по имени"""
-        for i, subscriber in enumerate(self._subscribers):
-            if subscriber.name == name:
-                del self._subscribers[i]
-                return True
-        return False
-    
-    def search(self, name: str) -> List[Subscriber]:
-        """Поиск абонентов по имени"""
+    def search(self, name):
         name_lower = name.lower()
-        return [s for s in self._subscribers if name_lower in s.name.lower()]
-    
-    def get_all(self) -> List[Subscriber]:
-        """Получение всех абонентов"""
-        return self._subscribers.copy()
+        return [s for s in self.subscribers if name_lower in s.name.lower()]
     
     def clear(self):
-        """Очистка списка абонентов"""
-        self._subscribers.clear()
+        self.subscribers.clear()
+        self.save()
     
-    def _sort_subscribers(self):
-        """Сортировка абонентов по имени"""
-        self._subscribers.sort()
+    def load(self):
+        if os.path.exists(self.filename):
+            try:
+                with open(self.filename, 'rb') as f:
+                    data = pickle.load(f)
+                    self.subscribers = [Subscriber.from_dict(d) for d in data]
+                    self.subscribers.sort()
+            except:
+                self.subscribers = []
     
-    def save_to_file(self) -> bool:
-        """Сохранение данных в файл через FileManager"""
-        if not self._file_manager:
+    def save(self):
+        try:
+            data = [s.to_dict() for s in self.subscribers]
+            with open(self.filename, 'wb') as f:
+                pickle.dump(data, f)
+            return True
+        except:
             return False
-        
-        data = [subscriber.to_dict() for subscriber in self._subscribers]
-        return self._file_manager.save(data)
     
-    def load_from_file(self) -> bool:
-        """Загрузка данных из файла через FileManager"""
-        if not self._file_manager:
-            return False
-        
-        data = self._file_manager.load()
-        self._subscribers.clear()
-        
-        for item in data:
-            subscriber = Subscriber.from_dict(item)
-            self._subscribers.append(subscriber)
-        
-        self._sort_subscribers()
-        return True
-    
-    def __len__(self) -> int:
-        return len(self._subscribers)
-    
-    def __getitem__(self, index: int) -> Subscriber:
-        return self._subscribers[index]
+    def get_all(self):
+        return self.subscribers.copy()
