@@ -1,4 +1,3 @@
-# utils/file_manager.py
 import pickle
 import json
 import os
