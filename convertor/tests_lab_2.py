@@ -1,9 +1,5 @@
 from conver_10_p import Conver_10_P
-class StructuralTester:
-    """
-    Класс для тестирования по критериям С0, С1, С2
-    """
-    
+class Tests:
     @staticmethod
     def test_c0_coverage():
         """Тестирование по критерию С0 (покрытие операторов)"""
@@ -61,7 +57,7 @@ class StructuralTester:
         print("КРИТЕРИЙ С1 - ПОКРЫТИЕ ВЕТВЕЙ/РЕШЕНИЙ")
         print("=" * 70)
         
-        # Правильный подсчет ветвей:
+        # Подсчет ветвей:
         # int_to_char: 3 ветви (if, elif, else)
         # int_to_p: 4 ветви (p вне диапазона, n==0, n<0, n>0)
         # flt_to_p: 4 ветви (p вне диапазона, n вне диапазона, c<0, нормальный случай)
@@ -297,21 +293,19 @@ def quick_test():
     
     return all_passed
 
-
-# Основная программа
 if __name__ == "__main__":
     print("ТЕСТИРОВАНИЕ КЛАССА Conver_10_P")
     print("=" * 70)
     
-    # Сначала быстрый тест
+    # быстрый тест
     print("\n1. Быстрый тест основных функций:")
     quick_passed = quick_test()
     
     if quick_passed:
         print("\n✓ Быстрый тест пройден успешно!")
         
-        # Полное структурное тестирование
-        tester = StructuralTester()
+        # Полное тестирование
+        tester = Tests()
         
         c0_passed = tester.test_c0_coverage()
         c1_passed = tester.test_c1_coverage()
