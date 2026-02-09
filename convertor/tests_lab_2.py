@@ -347,8 +347,8 @@ if __name__ == "__main__":
         print(report)
         
         # Сохранение отчета
-        with open("test_report_fixed.txt", "w", encoding="utf-8") as f:
+        with open("test_report.txt", "w", encoding="utf-8") as f:
             f.write(report)
-        print("Подробный отчет сохранен в 'test_report_fixed.txt'")
+        print("Подробный отчет сохранен в 'test_report.txt'")
     else:
         print("\n✗ Быстрый тест не пройден! Исправьте ошибки перед структурным тестированием.")
