@@ -1,5 +1,4 @@
 class Conver_10_P:
-    @staticmethod
     def int_to_char(d: int) -> str:
         if 0 <= d <= 9:
             return chr(ord('0') + d)
@@ -8,7 +7,6 @@ class Conver_10_P:
         else:
             raise ValueError(f"Значение {d} вне диапазона 0-15")
     
-    @staticmethod
     def int_to_p(n: int, p: int) -> str:
         if p < 2 or p > 16:
             raise ValueError(f"Основание системы счисления {p} должно быть в диапазоне 2..16")
@@ -28,7 +26,6 @@ class Conver_10_P:
         result_str = ''.join(reversed(result))
         return '-' + result_str if is_negative else result_str
     
-    @staticmethod
     def flt_to_p(n: float, p: int, c: int) -> str:
         if p < 2 or p > 16:
             raise ValueError(f"Основание системы счисления {p} должно быть в диапазоне 2..16")
@@ -54,7 +51,6 @@ class Conver_10_P:
         
         return ''.join(result) if result else '0'
     
-    @staticmethod
     def do(n: float, p: int, c: int) -> str:
         if p < 2 or p > 16:
             raise ValueError(f"Основание системы счисления {p} должно быть в диапазоне 2..16")
