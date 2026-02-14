@@ -1,4 +1,4 @@
-from conver_10_p import Conver_10_P
+from convertor.convers.conver_10_p import Conver_10_P
 class Tests:
     @staticmethod
     def test_c0_coverage():

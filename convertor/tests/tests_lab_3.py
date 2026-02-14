@@ -1,4 +1,4 @@
-from conver_p_10 import Conver_P_10
+from convertor.convers.conver_p_10 import Conver_P_10
 
 class StructuralTester:
     """
