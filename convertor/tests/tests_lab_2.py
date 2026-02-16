@@ -1,4 +1,9 @@
-from convertor.convers.conver_10_p import Conver_10_P
+import sys
+import os
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+from convers.conver_10_p import Conver_10_P
 class Tests:
     @staticmethod
     def test_c0_coverage():

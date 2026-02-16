@@ -1,4 +1,9 @@
-from convertor.convers.conver_p_10 import Conver_P_10
+import sys
+import os
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+from convers.conver_p_10 import Conver_P_10
 
 class StructuralTester:
     @staticmethod
