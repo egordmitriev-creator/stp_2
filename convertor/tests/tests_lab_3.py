@@ -1,10 +1,6 @@
 from convertor.convers.conver_p_10 import Conver_P_10
 
 class StructuralTester:
-    """
-    Класс для тестирования по критериям С0, С1, С2
-    """
-    
     @staticmethod
     def test_c0_coverage():
         """Тестирование по критерию С0 (покрытие операторов)"""
@@ -58,13 +54,6 @@ class StructuralTester:
         print("\n" + "=" * 70)
         print("КРИТЕРИЙ С1 - ПОКРЫТИЕ ВЕТВЕЙ/РЕШЕНИЙ")
         print("=" * 70)
-        
-        # Подсчет ветвей:
-        # char_to_num: 4 ветви (цифры, A-F, a-f, исключение)
-        # _convert: 1 ветка (цикл выполняется)
-        # dval: 8 ветвей (проверка P, пустая строка, знак, разделитель, целая часть, дробная часть)
-        # Итого: 4 + 1 + 8 = 13 ветвей
-        
         branches_covered = set()
         total_branches = 13
         
